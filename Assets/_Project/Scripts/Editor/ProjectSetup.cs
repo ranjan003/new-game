@@ -73,7 +73,7 @@ namespace ElementalClash.EditorTools
             SwitchToAndroid();
 
             Debug.Log("[Elemental Clash] Project setup finished. Next: Elemental Clash > 2. Build Android Dev APK " +
-                      "(or File > Build Profiles > Android > Build And Run). If Unity asked to restart for the " +
+                      "(or File > Build Settings > Android > Build And Run). If Unity asked to restart for the " +
                       "Input System, restart it first.");
         }
 

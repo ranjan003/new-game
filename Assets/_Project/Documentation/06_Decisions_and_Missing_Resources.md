@@ -24,7 +24,7 @@ I could not verify whether the Android **SDK & NDK Tools** and **OpenJDK** sub-m
 
 | # | Answer |
 |---|---|
-| Q1 | Unity **6000.0.67f1**, Android Build Support confirmed installed |
+| Q1 | Unity **2022.3.62f2** (changed from 6000.0.67f1 on 14 Nov 2026 at your request) |
 | Q2 | Test phone: **iQOO Z7s** |
 | Q3 | Placeholders now, final art decided later (before M5) |
 | Q4 | Project folder: `C:\data\game` (repo cloned to `C:\data\game\new-game`) |

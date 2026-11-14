@@ -7,8 +7,8 @@ Status: **Plan only. The Unity project has not been created yet.**
 
 | Item | Choice | Why |
 |---|---|---|
-| Unity | **Unity 6 LTS, 6000.0.67f1** (already on your PC, see doc 06 for an Android module check) | Current LTS, URP Render Graph, best Android tooling |
-| Fallback | 2022.3.62f3 LTS (also installed, Android module present) | If Unity 6 Android module is broken |
+| Unity | **Unity 2022.3.62f2 LTS** (chosen by Semil on 14 Nov 2026; Android module installed) | Stable LTS, mature URP 14 and Android tooling |
+| Render pipeline package | URP 14.0.x | Matches 2022.3 |
 | Template | "Universal 3D" (URP) | |
 | Render pipeline | URP with a **Mobile** renderer asset + separate **PC** renderer asset for editor testing | |
 | Input | Input System 1.x (`com.unity.inputsystem`) incl. On-Screen Stick/Button | Same actions for touch, keyboard, gamepad |

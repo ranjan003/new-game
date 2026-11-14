@@ -11,7 +11,7 @@ Status: **Design only. No Unity project, scripts, or assets exist yet.**
 |---|---|
 | Title | Elemental Clash: Arena Legends |
 | Genre | 3D 1v1 elemental arena brawler (third-person, free movement, not a 2D-plane fighter) |
-| Engine | Unity 6 LTS (6000.0.x) with URP, C#, Input System |
+| Engine | Unity 2022.3 LTS (2022.3.62f2) with URP 14, C#, Input System |
 | Platform | Android, landscape only. Windows editor builds for testing. |
 | Players | 1 player vs AI (offline). Online is out of scope for v1. |
 | Session length | 2 to 6 minutes per match |

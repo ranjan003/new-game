@@ -1,18 +1,21 @@
 # Milestone 1 Setup Guide — Open the project and put a test build on your phone
 
-Target: Unity **6000.0.67f1**, Windows, test phone **iQOO Z7s**.
+Target: Unity **2022.3.62f2**, Windows, test phone **iQOO Z7s**.
 Project location: `C:\data\game\new-game`
 
 Status: these files were written without access to Unity, so **none of this has been compiled or run yet**. Step 4 is the first real test. Please paste any red Console errors back to me.
 
 ## 1. One-time tools check (5 min)
-1. Unity Hub → Installs → 6000.0.67f1 → ⚙ → Add modules. Make sure **Android Build Support** and both sub-items **OpenJDK** and **Android SDK & NDK Tools** are ticked.
+1. Unity Hub → Installs → 2022.3.62f2 → ⚙ → Add modules. Make sure **Android Build Support** and both sub-items **OpenJDK** and **Android SDK & NDK Tools** are ticked.
 2. Git for Windows is installed. Open *Git Bash* or *PowerShell* and run once:
    ```
    git lfs install
    ```
 
 ## 2. Get the project
+
+**If you already opened this project in Unity 6:** close Unity, then delete the whole `C:\data\game\new-game` folder and clone it fresh with the commands below. Unity 6 leaves files behind that Unity 2022 can't read.
+
 ```
 cd C:\data\game
 git clone https://github.com/ranjan003/new-game
@@ -23,7 +26,7 @@ git checkout m1-project-skeleton
 
 ## 3. Open in Unity
 1. Unity Hub → Projects → **Add** → **Add project from disk** → select `C:\data\game\new-game`.
-2. Make sure the editor version shows **6000.0.67f1**, then open it. The first import takes several minutes; Unity creates `Library/` and the rest of `ProjectSettings/` itself.
+2. Make sure the editor version shows **2022.3.62f2**, then open it. The first import takes several minutes; Unity creates `Library/` and the rest of `ProjectSettings/` itself.
 3. If Unity asks *"enable the new Input System backends?"* click **Yes**. Unity restarts.
 4. If the Package Manager reports a version error for a package (most likely URP), open **Window → Package Manager**, select the package, and install the version it recommends. Tell me which one so I can fix the manifest.
 
@@ -58,8 +61,8 @@ git push
 
 | File | What it does |
 |---|---|
-| `Packages/manifest.json` | URP, Input System, Cinemachine, Test Framework, uGUI, Timeline |
-| `ProjectSettings/ProjectVersion.txt` | Pins Unity 6000.0.67f1 |
+| `Packages/manifest.json` | URP 14, Input System, Cinemachine, Test Framework, uGUI, TextMeshPro, Timeline |
+| `ProjectSettings/ProjectVersion.txt` | Pins Unity 2022.3.62f2 |
 | `.gitignore`, `.gitattributes` | Unity ignores, Git LFS for models, textures, audio |
 | `Scripts/Core/GameConstants.cs` | Tick rate, layer names, scene paths |
 | `Scripts/Core/BuildInfoOverlay.cs` | On-device FPS / device overlay with 30/60 cap and quality buttons |
