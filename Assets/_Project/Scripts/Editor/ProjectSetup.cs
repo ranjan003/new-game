@@ -160,6 +160,19 @@ namespace ElementalClash.EditorTools
         public static void ConfigureTime()
         {
             Time.fixedDeltaTime = GameConstants.CombatFixedDeltaTime;
+
+            // Time.fixedDeltaTime alone does not always persist in the editor, so write the setting directly.
+            Object[] assets = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TimeManager.asset");
+            if (assets != null && assets.Length > 0)
+            {
+                var so = new SerializedObject(assets[0]);
+                SerializedProperty fixedStep = so.FindProperty("Fixed Timestep");
+                if (fixedStep != null && fixedStep.propertyType == SerializedPropertyType.Float)
+                {
+                    fixedStep.floatValue = GameConstants.CombatFixedDeltaTime;
+                    so.ApplyModifiedPropertiesWithoutUndo();
+                }
+            }
             Debug.Log("[Elemental Clash] Fixed timestep set to 1/60 s.");
         }
 

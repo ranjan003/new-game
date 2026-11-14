@@ -1,0 +1,14 @@
+{
+    "name": "EC.Controls",
+    "rootNamespace": "ElementalClash.Controls",
+    "references": ["EC.Core", "EC.Combat", "Unity.InputSystem"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
