@@ -22,6 +22,14 @@ namespace ElementalClash.EditorTools
 
         private static void Build(bool runOnDevice)
         {
+            if (EditorApplication.isCompiling || EditorApplication.isUpdating)
+            {
+                EditorUtility.DisplayDialog("Elemental Clash build",
+                    "Unity is still compiling or importing (spinner in the bottom-right corner). " +
+                    "Wait until it stops, then click the build menu again.", "OK");
+                return;
+            }
+
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android &&
                 !EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Android, BuildTarget.Android))
             {
