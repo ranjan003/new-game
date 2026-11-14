@@ -3,6 +3,8 @@
     "rootNamespace": "ElementalClash.Tests",
     "references": [
         "EC.Core",
+        "EC.Data",
+        "EC.Combat",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

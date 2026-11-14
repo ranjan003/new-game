@@ -3,6 +3,12 @@
     "rootNamespace": "ElementalClash.EditorTools",
     "references": [
         "EC.Core",
+        "EC.Data",
+        "EC.Combat",
+        "EC.Controls",
+        "EC.Camera",
+        "EC.UI",
+        "Unity.InputSystem",
         "Unity.RenderPipelines.Core.Runtime",
         "Unity.RenderPipelines.Universal.Runtime"
     ],

@@ -1,0 +1,14 @@
+{
+    "name": "EC.UI",
+    "rootNamespace": "ElementalClash.UI",
+    "references": ["EC.Core", "EC.Data", "EC.Combat"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
