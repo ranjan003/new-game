@@ -5,17 +5,23 @@
 // fighter prefabs, and the Sandbox_Combat scene with a greybox arena, camera and debug HUD.
 using System.IO;
 using System.Linq;
+using ElementalClash.AI;
 using ElementalClash.CameraSystem;
 using ElementalClash.Combat;
 using ElementalClash.Controls;
 using ElementalClash.Core;
 using ElementalClash.Data;
+using ElementalClash.Presentation;
 using ElementalClash.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.OnScreen;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.Rendering;
+using UnityEngine.UI;
 
 namespace ElementalClash.EditorTools
 {
@@ -24,6 +30,7 @@ namespace ElementalClash.EditorTools
         private const string Root = ProjectSetup.Root;
         private const string MovesFolder = Root + "/ScriptableObjects/Moves";
         private const string FightersFolder = Root + "/ScriptableObjects/Fighters";
+        private const string AIFolder = Root + "/ScriptableObjects/AI";
         private const string MaterialsFolder = Root + "/Art/Shared";
         private const string PrefabsFolder = Root + "/Prefabs/Fighters";
         private const string ScenePath = Root + "/Scenes/Dev/Sandbox_Combat.unity";
@@ -36,7 +43,7 @@ namespace ElementalClash.EditorTools
         private static readonly Color ZyronBlue = new Color32(0x2F, 0x7B, 0xFF, 0xFF);
         private static readonly Color NoxarViolet = new Color32(0x5B, 0x2A, 0x86, 0xFF);
 
-        [MenuItem("Elemental Clash/4. Build Combat Sandbox (Batch B)", priority = 40)]
+        [MenuItem("Elemental Clash/4. Build Combat Sandbox", priority = 40)]
         public static void Build()
         {
             if (LayerMask.NameToLayer(GameConstants.Layers.Hurtbox) < 0)
@@ -46,7 +53,7 @@ namespace ElementalClash.EditorTools
             }
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
 
-            foreach (string folder in new[] { MovesFolder + "/Zyron", MovesFolder + "/Noxar", FightersFolder, MaterialsFolder, PrefabsFolder, Path.GetDirectoryName(ScenePath) })
+            foreach (string folder in new[] { MovesFolder + "/Zyron", MovesFolder + "/Noxar", FightersFolder, AIFolder, MaterialsFolder, PrefabsFolder, Path.GetDirectoryName(ScenePath) })
             {
                 Directory.CreateDirectory(folder);
             }
@@ -54,6 +61,7 @@ namespace ElementalClash.EditorTools
 
             FighterDefinition zyron = CreateZyron();
             FighterDefinition noxar = CreateNoxar();
+            AIProfile aiNormal = GetOrCreateAIProfile(AIFolder + "/AI_Normal.asset");
 
             Material zyronMat = GetOrCreateMaterial("M_Placeholder_Zyron", ZyronBlue);
             Material noxarMat = GetOrCreateMaterial("M_Placeholder_Noxar", NoxarViolet);
@@ -68,8 +76,8 @@ namespace ElementalClash.EditorTools
                 return;
             }
 
-            GameObject zyronPrefab = BuildFighterPrefab("Fighter_Zyron", zyron, zyronMat, accentMat, isPlayer: true, actions);
-            GameObject noxarPrefab = BuildFighterPrefab("Fighter_Noxar", noxar, noxarMat, accentMat, isPlayer: false, null);
+            GameObject zyronPrefab = BuildFighterPrefab("Fighter_Zyron", zyron, zyronMat, accentMat, isPlayer: true, actions, null);
+            GameObject noxarPrefab = BuildFighterPrefab("Fighter_Noxar", noxar, noxarMat, accentMat, isPlayer: false, null, aiNormal);
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
@@ -107,16 +115,19 @@ namespace ElementalClash.EditorTools
             var hud = hudGo.AddComponent<CombatDebugHUD>();
             SetRef(hud, "_player", player);
             SetRef(hud, "_opponent", opponent);
-            SetRef(hud, "_dummy", opponent.GetComponent<DummyCommandSource>());
+            SetRef(hud, "_ai", opponent.GetComponent<AIBrain>());
+
+            BuildTouchControls(rig);
 
             var overlay = new GameObject("BuildInfoOverlay (FPS)").AddComponent<BuildInfoOverlay>();
             overlay.enabled = false; // enable in the Inspector if you want the FPS readout here too
 
             EditorSceneManager.SaveScene(scene, ScenePath);
-            AddSceneToBuild(ScenePath);
+            AddSceneToBuildFirst(ScenePath);
             AssetDatabase.SaveAssets();
 
-            Debug.Log("[Elemental Clash] Sandbox_Combat built. Press Play. Move WASD, Light J, Special U.");
+            Debug.Log("[Elemental Clash] Sandbox_Combat built and set as the first scene for phone builds. " +
+                      "Press Play: move WASD, Light J, Special U, drag the right side of the screen to orbit.");
         }
 
         // ------------------------------------------------------------------ Data
@@ -245,7 +256,7 @@ namespace ElementalClash.EditorTools
         // ------------------------------------------------------------------ Fighters
 
         private static GameObject BuildFighterPrefab(string name, FighterDefinition definition, Material bodyMat,
-            Material accentMat, bool isPlayer, InputActionAsset actions)
+            Material accentMat, bool isPlayer, InputActionAsset actions, AIProfile aiProfile)
         {
             string path = $"{PrefabsFolder}/{name}.prefab";
             int fighterLayer = LayerMask.NameToLayer(GameConstants.Layers.Fighter);
@@ -260,10 +271,13 @@ namespace ElementalClash.EditorTools
             controller.stepOffset = 0.3f;
             controller.skinWidth = 0.05f;
 
+            var visual = new GameObject("Visual") { layer = fighterLayer };
+            visual.transform.SetParent(root.transform, false);
+
             GameObject body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             body.name = "Body";
             Object.DestroyImmediate(body.GetComponent<Collider>());
-            body.transform.SetParent(root.transform, false);
+            body.transform.SetParent(visual.transform, false);
             body.transform.localPosition = new Vector3(0f, 0.9f, 0f);
             body.transform.localScale = new Vector3(0.8f, 0.9f, 0.8f);
             body.GetComponent<MeshRenderer>().sharedMaterial = bodyMat;
@@ -273,11 +287,14 @@ namespace ElementalClash.EditorTools
             GameObject visor = GameObject.CreatePrimitive(PrimitiveType.Cube);
             visor.name = "FacingVisor";
             Object.DestroyImmediate(visor.GetComponent<Collider>());
-            visor.transform.SetParent(root.transform, false);
+            visor.transform.SetParent(visual.transform, false);
             visor.transform.localPosition = new Vector3(0f, 1.45f, 0.32f);
             visor.transform.localScale = new Vector3(0.5f, 0.12f, 0.2f);
             visor.GetComponent<MeshRenderer>().sharedMaterial = accentMat;
             visor.layer = fighterLayer;
+
+            Transform leftFist = CreateFist(visual.transform, "Fist_L", new Vector3(-0.32f, 1.25f, 0.35f), accentMat, fighterLayer);
+            Transform rightFist = CreateFist(visual.transform, "Fist_R", new Vector3(0.32f, 1.2f, 0.3f), accentMat, fighterLayer);
 
             var hurtboxGo = new GameObject("Hurtbox") { layer = hurtboxLayer };
             hurtboxGo.transform.SetParent(root.transform, false);
@@ -300,8 +317,18 @@ namespace ElementalClash.EditorTools
             }
             else
             {
-                root.AddComponent<DummyCommandSource>();
+                var brain = root.AddComponent<AIBrain>();
+                var brainSo = new SerializedObject(brain);
+                brainSo.FindProperty("_profile").objectReferenceValue = aiProfile;
+                brainSo.ApplyModifiedPropertiesWithoutUndo();
             }
+
+            var visuals = root.AddComponent<FighterVisuals>();
+            var visualsSo = new SerializedObject(visuals);
+            visualsSo.FindProperty("_visualRoot").objectReferenceValue = visual.transform;
+            visualsSo.FindProperty("_leftFist").objectReferenceValue = leftFist;
+            visualsSo.FindProperty("_rightFist").objectReferenceValue = rightFist;
+            visualsSo.ApplyModifiedPropertiesWithoutUndo();
 
             var fighterSo = new SerializedObject(fighter);
             fighterSo.FindProperty("_definition").objectReferenceValue = definition;
@@ -316,6 +343,129 @@ namespace ElementalClash.EditorTools
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
             Object.DestroyImmediate(root);
             return prefab;
+        }
+
+        private static Transform CreateFist(Transform parent, string name, Vector3 localPosition, Material material, int layer)
+        {
+            GameObject fist = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            fist.name = name;
+            Object.DestroyImmediate(fist.GetComponent<Collider>());
+            fist.transform.SetParent(parent, false);
+            fist.transform.localPosition = localPosition;
+            fist.transform.localScale = Vector3.one * 0.26f;
+            fist.GetComponent<MeshRenderer>().sharedMaterial = material;
+            fist.layer = layer;
+            return fist.transform;
+        }
+
+        private static AIProfile GetOrCreateAIProfile(string path)
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<AIProfile>(path);
+            if (existing != null) return existing;
+            var profile = ScriptableObject.CreateInstance<AIProfile>(); // defaults = "Normal" (doc 05 §7)
+            AssetDatabase.CreateAsset(profile, path);
+            return profile;
+        }
+
+        // ------------------------------------------------------------------ Touch controls
+
+        private static void BuildTouchControls(SimpleCombatCamera rig)
+        {
+            var eventSystemGo = new GameObject("EventSystem");
+            eventSystemGo.AddComponent<EventSystem>();
+            var uiModule = eventSystemGo.AddComponent<InputSystemUIInputModule>();
+            uiModule.AssignDefaultActions();
+
+            var canvasGo = new GameObject("TouchControls_Canvas") { layer = LayerMask.NameToLayer("UI") };
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 10;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 1f;
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            Sprite circle = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+            // Camera swipe area: right 55% of the screen, behind the buttons (created first).
+            var swipe = CreateUiObject("CameraSwipeArea", canvasGo.transform);
+            var swipeRect = swipe.GetComponent<RectTransform>();
+            swipeRect.anchorMin = new Vector2(0.45f, 0f);
+            swipeRect.anchorMax = new Vector2(1f, 0.82f);
+            swipeRect.offsetMin = Vector2.zero;
+            swipeRect.offsetMax = Vector2.zero;
+            var swipeImage = swipe.AddComponent<Image>();
+            swipeImage.color = new Color(1f, 1f, 1f, 0f);
+            var swipeArea = swipe.AddComponent<CameraSwipeArea>();
+            SetRef(swipeArea, "_camera", rig);
+
+            // Joystick (bottom-left). The knob is the OnScreenStick; it feeds <Gamepad>/leftStick.
+            var stickBase = CreateUiObject("Joystick_Base", canvasGo.transform);
+            var baseRect = stickBase.GetComponent<RectTransform>();
+            baseRect.anchorMin = baseRect.anchorMax = new Vector2(0f, 0f);
+            baseRect.pivot = new Vector2(0.5f, 0.5f);
+            baseRect.anchoredPosition = new Vector2(280f, 260f);
+            baseRect.sizeDelta = new Vector2(300f, 300f);
+            var baseImage = stickBase.AddComponent<Image>();
+            baseImage.sprite = circle;
+            baseImage.color = new Color(1f, 1f, 1f, 0.18f);
+
+            var knob = CreateUiObject("Joystick_Knob", stickBase.transform);
+            var knobRect = knob.GetComponent<RectTransform>();
+            knobRect.anchorMin = knobRect.anchorMax = new Vector2(0.5f, 0.5f);
+            knobRect.anchoredPosition = Vector2.zero;
+            knobRect.sizeDelta = new Vector2(130f, 130f);
+            var knobImage = knob.AddComponent<Image>();
+            knobImage.sprite = circle;
+            knobImage.color = new Color(1f, 1f, 1f, 0.55f);
+            var stick = knob.AddComponent<OnScreenStick>();
+            stick.controlPath = "<Gamepad>/leftStick";
+            stick.movementRange = 110f;
+
+            // Attack buttons (bottom-right). They press gamepad buttons bound in ControlsActions.
+            CreateTouchButton(canvasGo.transform, "Button_Light", "L", new Vector2(-250f, 250f), 230f,
+                "<Gamepad>/buttonWest", new Color(1f, 1f, 1f, 0.45f), circle, font);
+            CreateTouchButton(canvasGo.transform, "Button_Special1", "S1", new Vector2(-480f, 340f), 165f,
+                "<Gamepad>/rightShoulder", new Color(0.35f, 0.7f, 1f, 0.5f), circle, font);
+        }
+
+        private static GameObject CreateUiObject(string name, Transform parent)
+        {
+            var go = new GameObject(name, typeof(RectTransform)) { layer = LayerMask.NameToLayer("UI") };
+            go.transform.SetParent(parent, false);
+            return go;
+        }
+
+        private static void CreateTouchButton(Transform parent, string name, string label, Vector2 offsetFromBottomRight,
+            float size, string controlPath, Color color, Sprite sprite, Font font)
+        {
+            var go = CreateUiObject(name, parent);
+            var rect = go.GetComponent<RectTransform>();
+            rect.anchorMin = rect.anchorMax = new Vector2(1f, 0f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = offsetFromBottomRight;
+            rect.sizeDelta = new Vector2(size, size);
+            var image = go.AddComponent<Image>();
+            image.sprite = sprite;
+            image.color = color;
+            var button = go.AddComponent<OnScreenButton>();
+            button.controlPath = controlPath;
+
+            var text = CreateUiObject("Label", go.transform);
+            var textRect = text.GetComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var t = text.AddComponent<Text>();
+            t.text = label;
+            t.font = font;
+            t.fontSize = Mathf.RoundToInt(size * 0.3f);
+            t.alignment = TextAnchor.MiddleCenter;
+            t.color = new Color(0f, 0f, 0f, 0.75f);
+            t.raycastTarget = false;
         }
 
         private static Fighter InstantiateFighter(GameObject prefab, Vector3 position, Quaternion rotation)
@@ -402,11 +552,11 @@ namespace ElementalClash.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void AddSceneToBuild(string path)
+        /// <summary>Puts the scene at index 0 so phone builds open straight into it (Boot stays in the list).</summary>
+        private static void AddSceneToBuildFirst(string path)
         {
-            EditorBuildSettingsScene[] scenes = EditorBuildSettings.scenes;
-            if (scenes.Any(s => s.path == path)) return;
-            EditorBuildSettings.scenes = scenes.Append(new EditorBuildSettingsScene(path, true)).ToArray();
+            var others = EditorBuildSettings.scenes.Where(s => s.path != path);
+            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(path, true) }.Concat(others).ToArray();
         }
     }
 }

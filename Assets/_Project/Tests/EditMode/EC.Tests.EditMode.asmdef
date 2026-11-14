@@ -5,6 +5,7 @@
         "EC.Core",
         "EC.Data",
         "EC.Combat",
+        "EC.AI",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

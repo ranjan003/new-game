@@ -2,6 +2,7 @@
 // Assembly: EC.UI
 // Batch B test HUD drawn with IMGUI: HP/EP bars, states, combo, last hit, KO banner and test buttons.
 // The real uGUI HUD comes in Batch D.
+using ElementalClash.AI;
 using ElementalClash.Combat;
 using UnityEngine;
 
@@ -11,7 +12,7 @@ namespace ElementalClash.UI
     {
         [SerializeField] private Fighter _player;
         [SerializeField] private Fighter _opponent;
-        [SerializeField] private DummyCommandSource _dummy;
+        [SerializeField] private AIBrain _ai;
 
         private string _lastHit = "-";
         private int _bestCombo;
@@ -70,10 +71,12 @@ namespace ElementalClash.UI
                 GUI.Label(new Rect(0f, h * 0.35f, w, h * 0.15f), _koText, _big);
             }
 
-            float bw = h * 0.3f;
-            float bh = h * 0.08f;
-            float by = h - pad - bh;
-            if (GUI.Button(new Rect(pad, by, bw, bh), "Reset fighters", _button))
+            // Buttons sit under the info lines so they stay clear of the bars and the touch controls.
+            float bw = h * 0.26f;
+            float bh = h * 0.075f;
+            float by = y + lineH * 2.2f;
+            float bx = w * 0.5f - bw - pad * 0.5f;
+            if (GUI.Button(new Rect(bx, by, bw, bh), "Reset fighters", _button))
             {
                 _player.ResetToSpawn();
                 _opponent.ResetToSpawn();
@@ -82,17 +85,20 @@ namespace ElementalClash.UI
                 _lastHit = "-";
             }
 
-            if (_dummy != null)
+            if (_ai != null)
             {
-                string label = _dummy.AutoLightInterval > 0f ? "Dummy: attacks" : "Dummy: passive";
-                if (GUI.Button(new Rect(pad * 2f + bw, by, bw, bh), label, _button))
+                string label = _ai.Active ? "AI: fighting" : "AI: passive";
+                if (GUI.Button(new Rect(bx + bw + pad, by, bw, bh), label, _button))
                 {
-                    _dummy.AutoLightInterval = _dummy.AutoLightInterval > 0f ? 0f : 2f;
+                    _ai.Active = !_ai.Active;
                 }
             }
 
-            GUI.Label(new Rect(pad * 3f + bw * 2f, by, w - bw * 2f - pad * 4f, bh),
-                "Move WASD  |  Light J  |  Special U  (gamepad: stick, X / Square, RB)", _label);
+            if (!Application.isMobilePlatform)
+            {
+                GUI.Label(new Rect(pad, h - pad - lineH, w - pad * 2f, lineH),
+                    "Move WASD  |  Light J  |  Special U  |  drag right side to orbit camera  (gamepad: stick, X / Square, RB)", _label);
+            }
         }
 
         private void DrawFighterPanel(Fighter fighter, Rect bar, bool alignRight)

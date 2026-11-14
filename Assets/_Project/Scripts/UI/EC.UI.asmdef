@@ -1,7 +1,12 @@
 {
     "name": "EC.UI",
     "rootNamespace": "ElementalClash.UI",
-    "references": ["EC.Core", "EC.Data", "EC.Combat"],
+    "references": [
+        "EC.Core",
+        "EC.Data",
+        "EC.Combat",
+        "EC.AI"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

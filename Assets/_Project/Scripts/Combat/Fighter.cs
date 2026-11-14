@@ -59,6 +59,11 @@ namespace ElementalClash.Combat
         public FighterState State { get; private set; }
         public MoveDefinition CurrentMove => _move;
         public int CurrentMoveFrame => _moveFrame;
+        /// <summary>0..2 while in the light chain, -1 otherwise.</summary>
+        public int CurrentChainIndex => State == FighterState.Attack ? _chainIndex : -1;
+        public bool IsInStartup => State == FighterState.Attack && _move != null && _move.IsStartupFrame(_moveFrame);
+        public bool IsInActiveFrames => State == FighterState.Attack && _move != null && _move.IsActiveFrame(_moveFrame);
+        public bool IsInRecovery => State == FighterState.Attack && _move != null && _move.IsRecoveryFrame(_moveFrame);
         public int CombosTaken { get; private set; }
         public bool IsInHitStop => _hitStopFramesLeft > 0;
         public bool IsInvulnerable => State == FighterState.Attack && _move != null && _move.IsInvulnerableOnFrame(_moveFrame);

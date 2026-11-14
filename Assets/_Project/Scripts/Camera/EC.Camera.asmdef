@@ -1,7 +1,11 @@
 {
     "name": "EC.Camera",
     "rootNamespace": "ElementalClash.CameraSystem",
-    "references": ["EC.Core", "EC.Combat"],
+    "references": [
+        "EC.Core",
+        "EC.Combat",
+        "UnityEngine.UI"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
