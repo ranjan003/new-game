@@ -274,27 +274,45 @@ namespace ElementalClash.EditorTools
             var visual = new GameObject("Visual") { layer = fighterLayer };
             visual.transform.SetParent(root.transform, false);
 
-            GameObject body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            body.name = "Body";
-            Object.DestroyImmediate(body.GetComponent<Collider>());
-            body.transform.SetParent(visual.transform, false);
-            body.transform.localPosition = new Vector3(0f, 0.9f, 0f);
-            body.transform.localScale = new Vector3(0.8f, 0.9f, 0.8f);
-            body.GetComponent<MeshRenderer>().sharedMaterial = bodyMat;
-            body.layer = fighterLayer;
+            // Real rigged model if you've dropped one in Art/Characters/<Name>/<Name>.fbx, otherwise the capsule.
+            string fighterName = definition.DisplayName;
+            FighterModelLibrary.Result model = FighterModelLibrary.TryLoad(fighterName);
+            Renderer bodyRenderer;
+            Transform leftFist = null;
+            Transform rightFist = null;
+            Animator modelAnimator = null;
 
-            // A "visor" so you can see which way the fighter faces.
-            GameObject visor = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            visor.name = "FacingVisor";
-            Object.DestroyImmediate(visor.GetComponent<Collider>());
-            visor.transform.SetParent(visual.transform, false);
-            visor.transform.localPosition = new Vector3(0f, 1.45f, 0.32f);
-            visor.transform.localScale = new Vector3(0.5f, 0.12f, 0.2f);
-            visor.GetComponent<MeshRenderer>().sharedMaterial = accentMat;
-            visor.layer = fighterLayer;
+            if (model != null)
+            {
+                GameObject instance = FighterModelLibrary.InstantiateModel(model, fighterName, visual.transform, fighterLayer, out bodyRenderer);
+                modelAnimator = instance.GetComponent<Animator>();
+                Debug.Log($"[Elemental Clash] {name}: using model {AssetDatabase.GetAssetPath(model.Model)}");
+            }
+            else
+            {
+                GameObject body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                body.name = "Body";
+                Object.DestroyImmediate(body.GetComponent<Collider>());
+                body.transform.SetParent(visual.transform, false);
+                body.transform.localPosition = new Vector3(0f, 0.9f, 0f);
+                body.transform.localScale = new Vector3(0.8f, 0.9f, 0.8f);
+                body.GetComponent<MeshRenderer>().sharedMaterial = bodyMat;
+                body.layer = fighterLayer;
 
-            Transform leftFist = CreateFist(visual.transform, "Fist_L", new Vector3(-0.32f, 1.25f, 0.35f), accentMat, fighterLayer);
-            Transform rightFist = CreateFist(visual.transform, "Fist_R", new Vector3(0.32f, 1.2f, 0.3f), accentMat, fighterLayer);
+                // A "visor" so you can see which way the fighter faces.
+                GameObject visor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                visor.name = "FacingVisor";
+                Object.DestroyImmediate(visor.GetComponent<Collider>());
+                visor.transform.SetParent(visual.transform, false);
+                visor.transform.localPosition = new Vector3(0f, 1.45f, 0.32f);
+                visor.transform.localScale = new Vector3(0.5f, 0.12f, 0.2f);
+                visor.GetComponent<MeshRenderer>().sharedMaterial = accentMat;
+                visor.layer = fighterLayer;
+
+                leftFist = CreateFist(visual.transform, "Fist_L", new Vector3(-0.32f, 1.25f, 0.35f), accentMat, fighterLayer);
+                rightFist = CreateFist(visual.transform, "Fist_R", new Vector3(0.32f, 1.2f, 0.3f), accentMat, fighterLayer);
+                bodyRenderer = body.GetComponent<MeshRenderer>();
+            }
 
             var hurtboxGo = new GameObject("Hurtbox") { layer = hurtboxLayer };
             hurtboxGo.transform.SetParent(root.transform, false);
@@ -323,17 +341,34 @@ namespace ElementalClash.EditorTools
                 brainSo.ApplyModifiedPropertiesWithoutUndo();
             }
 
-            var visuals = root.AddComponent<FighterVisuals>();
-            var visualsSo = new SerializedObject(visuals);
-            visualsSo.FindProperty("_visualRoot").objectReferenceValue = visual.transform;
-            visualsSo.FindProperty("_leftFist").objectReferenceValue = leftFist;
-            visualsSo.FindProperty("_rightFist").objectReferenceValue = rightFist;
-            visualsSo.ApplyModifiedPropertiesWithoutUndo();
+            if (modelAnimator != null)
+            {
+                var anim = root.AddComponent<FighterAnimator>();
+                var animSo = new SerializedObject(anim);
+                animSo.FindProperty("_animator").objectReferenceValue = modelAnimator;
+                animSo.FindProperty("_visualRoot").objectReferenceValue = visual.transform;
+                SerializedProperty lengths = animSo.FindProperty("_attackClipLengths");
+                lengths.arraySize = model.AttackClipLengths.Length;
+                for (int i = 0; i < model.AttackClipLengths.Length; i++)
+                {
+                    lengths.GetArrayElementAtIndex(i).floatValue = model.AttackClipLengths[i];
+                }
+                animSo.ApplyModifiedPropertiesWithoutUndo();
+            }
+            else
+            {
+                var visuals = root.AddComponent<FighterVisuals>();
+                var visualsSo = new SerializedObject(visuals);
+                visualsSo.FindProperty("_visualRoot").objectReferenceValue = visual.transform;
+                visualsSo.FindProperty("_leftFist").objectReferenceValue = leftFist;
+                visualsSo.FindProperty("_rightFist").objectReferenceValue = rightFist;
+                visualsSo.ApplyModifiedPropertiesWithoutUndo();
+            }
 
             var fighterSo = new SerializedObject(fighter);
             fighterSo.FindProperty("_definition").objectReferenceValue = definition;
             fighterSo.FindProperty("_hurtbox").objectReferenceValue = hurtbox;
-            fighterSo.FindProperty("_bodyRenderer").objectReferenceValue = body.GetComponent<MeshRenderer>();
+            fighterSo.FindProperty("_bodyRenderer").objectReferenceValue = bodyRenderer;
             fighterSo.ApplyModifiedPropertiesWithoutUndo();
 
             var hurtboxSo = new SerializedObject(hurtbox);
